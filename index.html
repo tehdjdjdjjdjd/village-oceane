@@ -1,0 +1,100 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Le village de Noël d’Océane</title>
+<style>
+:root{--g:#0f3d2e;--g2:#08241b;--gold:#d9b25f;--cream:#f6efdc}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--cream);font-family:Georgia,serif;background:linear-gradient(#050f1c,#0b2a2b 55%,var(--g2));overflow-x:hidden}
+canvas#snow{position:fixed;inset:0;pointer-events:none;z-index:1}
+header{text-align:center;padding:28px 16px 8px;position:relative;z-index:2}
+h1{font-size:clamp(1.8rem,5vw,3.2rem);margin:0;color:var(--gold);letter-spacing:.04em;text-shadow:0 0 18px #d9b25f66}
+.sub{max-width:620px;margin:10px auto;font-style:italic;opacity:.92}.how{max-width:620px;margin:6px auto;font-size:.9rem;opacity:.75}
+.info{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}.info span{border:1px solid #d9b25f66;border-radius:99px;padding:6px 14px;background:#0f3d2e99}
+.lights{height:14px;margin:6px auto;max-width:900px;background:radial-gradient(circle,var(--gold) 3px,transparent 4px) 0 50%/34px 14px;animation:tw 2.4s infinite alternate}
+@keyframes tw{from{opacity:.35}to{opacity:1}}
+#village{position:relative;z-index:2;display:grid;grid-template-columns:repeat(5,1fr);gap:22px 14px;max-width:900px;margin:18px auto 0;padding:10px 14px 140px}
+.snowground{position:fixed;left:0;right:0;bottom:0;height:70px;background:linear-gradient(#e9f0f2,#fff);border-radius:50% 50% 0 0/100% 100% 0 0;z-index:0;opacity:.9}
+.h{all:unset;cursor:pointer;position:relative;display:block;aspect-ratio:1/1.05;transition:transform .25s}
+.h .roof{position:absolute;left:-6%;right:-6%;top:0;height:38%;background:#f3f6f7;clip-path:polygon(50% 0,100% 100%,0 100%);border-bottom:4px solid var(--gold)}
+.h .body{position:absolute;left:4%;right:4%;top:36%;bottom:0;background:linear-gradient(#17533f,var(--g));border:2px solid #d9b25f88;border-radius:4px 4px 8px 8px;display:grid;place-items:center}
+.h .chim{position:absolute;right:20%;top:6%;width:12%;height:16%;background:#6b3b2a}
+.h .win{position:absolute;left:14%;top:46%;width:24%;height:22%;background:#3a4a46;border:2px solid var(--gold)}
+.h .num{position:absolute;right:12%;bottom:10%;font-size:clamp(1.1rem,3.4vw,1.8rem);color:var(--gold);font-weight:bold}
+.h .lock{position:absolute;left:16%;bottom:10%;font-size:1rem;opacity:.8}
+.h.open .win{background:#ffd978;box-shadow:0 0 18px 6px #ffc94d99;animation:fl 3s infinite alternate}
+@keyframes fl{to{box-shadow:0 0 26px 10px #ffc94dbb}}
+.h.open:hover,.h.open:focus-visible{transform:translateY(-6px) scale(1.06)}
+.h.locked{filter:saturate(.3) brightness(.55);cursor:not-allowed}
+.h.new::after{content:"✨ Nouveau";position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--g2);font-size:.7rem;padding:2px 8px;border-radius:9px;white-space:nowrap}
+.h.unlocking{animation:pop .9s}@keyframes pop{40%{transform:scale(1.25) rotate(-3deg);filter:brightness(1.8)}}
+#modal{position:fixed;inset:0;z-index:10;background:#000a;display:none;place-items:center;padding:14px}
+#modal.on{display:grid}.card{background:linear-gradient(var(--cream),#e8dcbc);color:#2a2418;max-width:560px;width:100%;max-height:90vh;overflow:auto;border-radius:14px;padding:26px;border:3px solid var(--gold);animation:in .5s;position:relative;z-index:12}
+@keyframes in{from{transform:scale(.6) rotate(-4deg);opacity:0}}
+.card h2{margin:0 0 10px;color:var(--g)}.card img{max-width:100%;border-radius:8px;margin:8px 0}.cap{font-size:.85rem;font-style:italic}
+.btn{background:var(--g);color:var(--cream);border:2px solid var(--gold);border-radius:8px;padding:9px 16px;font:inherit;cursor:pointer;margin:6px 6px 0 0}
+.opt{display:block;width:100%;text-align:left;margin:6px 0}.good{background:#2e7d4f}.bad{background:#8b2e2e}
+.gold{background:linear-gradient(120deg,#fff3c4,#d9b25f);padding:10px;border-radius:8px}
+#mute{position:fixed;top:10px;right:10px;z-index:20}#modal.fin .card{box-shadow:0 0 60px 20px #ffd97899}
+canvas#conf{position:fixed;inset:0;pointer-events:none;z-index:11}
+@media(max-width:600px){#village{grid-template-columns:repeat(3,1fr);gap:20px 10px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<canvas id="snow"></canvas><canvas id="conf"></canvas><div class="snowground"></div>
+<button id="mute" class="btn" aria-label="Son">🔇 Son coupé</button>
+<header><h1>Le village de Noël d’Océane</h1><div class="lights"></div>
+<p class="sub">Vingt-cinq petites maisons, vingt-cinq surprises… et une seule personne assez chanceuse (et un peu têtue) pour les ouvrir. 🎄</p>
+<p class="how">Chaque nuit à minuit (heure de Paris), une nouvelle maison s’allume. Les anciennes restent ouvertes. Pas de triche : Noël ne se hâte pas !</p>
+<div class="info"><span id="count">…</span><span id="cd">…</span></div></header>
+<main id="village"></main>
+<div id="modal"><div class="card" id="card"></div></div>
+<script src="config.js"></script>
+<script>
+const $=s=>document.querySelector(s),C=window.CONFIG,DEMO=C.URL.includes("VOTRE");
+const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+const DEMO_DAY=+(new URLSearchParams(location.search).get("demo")||3); // test sans Supabase : ?demo=12
+async function rpc(fn,args){
+ if(DEMO){ // mode essai local, uniquement tant que config.js n'est pas rempli
+  if(fn=="get_status")return{today:DEMO_DAY,next_in:3600,houses:Array.from({length:DEMO_DAY},(_,i)=>({day:i+1}))};
+  return{day:args.d,kind:args.d==25?"finale":"message",title:"[DÉMO] Maison "+args.d,content:{text:"Contenu de démonstration.",quiz:args.d==2?[{q:"Capitale de la France ?",options:["Lyon","Paris"],answer:1}]:null}};}
+ const r=await fetch(C.URL+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:C.KEY,"Content-Type":"application/json"},body:JSON.stringify(args||{})});
+ if(!r.ok)throw new Error((await r.json()).message||"Erreur");return r.json();}
+// --- sons (WebAudio, après un geste seulement)
+let ac,muted=true;function tone(f,d=.15,t=0,v=.05){if(muted)return;ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.type="sine";g.gain.setValueAtTime(v,ac.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+t+d);o.connect(g).connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+d)}
+const sfx={click:()=>tone(660),open:()=>[523,659,784].forEach((f,i)=>tone(f,.25,i*.12)),unlock:()=>[784,988].forEach((f,i)=>tone(f,.3,i*.15)),fin:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,.5,i*.2,.07))};
+$("#mute").onclick=()=>{muted=!muted;$("#mute").textContent=muted?"🔇 Son coupé":"🔔 Son activé";if(!muted)sfx.click()};
+// --- neige
+const cv=$("#snow"),cx=cv.getContext("2d");let fl=[];function rs(){cv.width=innerWidth;cv.height=innerHeight}rs();onresize=rs;
+if(!reduce){fl=Array.from({length:70},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2.2+.8,v:Math.random()+.4}));
+(function f(){cx.clearRect(0,0,cv.width,cv.height);cx.fillStyle="#fff";fl.forEach(s=>{s.y+=s.v;s.x+=Math.sin(s.y/40)*.4;if(s.y>cv.height){s.y=-5;s.x=Math.random()*cv.width}cx.beginPath();cx.arc(s.x,s.y,s.r,0,7);cx.fill()});requestAnimationFrame(f)})()}
+// --- confettis dorés
+function confetti(){if(reduce)return;const c=$("#conf"),x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+const p=Array.from({length:160},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height/2,w:6,h:10,v:2+Math.random()*3,a:Math.random()*6,col:["#d9b25f","#fff3c4","#f6efdc","#2e7d4f"][Math.random()*4|0]}));let n=0;
+(function f(){x.clearRect(0,0,c.width,c.height);p.forEach(q=>{q.y+=q.v;q.a+=.1;x.save();x.translate(q.x,q.y);x.rotate(q.a);x.fillStyle=q.col;x.fillRect(0,0,q.w,q.h);x.restore()});if(++n<300)requestAnimationFrame(f);else x.clearRect(0,0,c.width,c.height)})()}
+// --- village
+let st,seen=JSON.parse(localStorage.getItem("seen")||"[]");
+function fmt(s){const d=s/86400|0,h=s%86400/3600|0,m=s%3600/60|0;return(d?d+" j ":"")+h+" h "+m+" min "+(s%60)+" s"}
+async function load(){
+ try{st=await rpc("get_status")}catch(e){$("#count").textContent="Le village se réveille… réessaie dans un instant.";return}
+ const v=$("#village");v.innerHTML="";
+ for(let d=1;d<=25;d++){const o=d<=st.today,b=document.createElement("button");b.className="h "+(o?"open":"locked")+(o&&d==st.today&&!seen.includes(d)?" new":"");
+  b.innerHTML='<i class="chim"></i><i class="roof"></i><i class="body"></i><i class="win"></i><span class="num">'+d+'</span>'+(o?"":'<span class="lock">🔒</span>');
+  b.setAttribute("aria-label",o?"Ouvrir la maison "+d:"Maison "+d+" verrouillée");
+  b.onclick=()=>o?openH(d,b):(sfx.click(),b.animate([{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"none"}],250));v.append(b)}
+ const lastKnown=+localStorage.getItem("last")||0;if(st.today>lastKnown&&lastKnown>0){const b=v.children[st.today-1];b.classList.add("unlocking");sfx.unlock()}localStorage.setItem("last",st.today);
+ $("#count").textContent=st.today==0?"Aucune surprise pour l’instant":st.today+" / 25 surprise"+(st.today>1?"s":"")+" disponible"+(st.today>1?"s":"");
+ let left=st.next_in;clearInterval(window.t);const tick=()=>{if(left==null){$("#cd").textContent="Joyeux Noël ! 🎁";return}$("#cd").textContent=(st.today==0?"Ouverture du village dans ":"Prochaine maison dans ")+fmt(left);if(left--<=0){clearInterval(window.t);load()}};tick();window.t=setInterval(tick,1000)}
+async function openH(d,b){sfx.click();let r;try{r=await rpc("open_house",{d})}catch(e){alert(e.message);return}
+ if(!seen.includes(d)){seen.push(d);localStorage.setItem("seen",JSON.stringify(seen));b.classList.remove("new")}
+ const k=r.content||{},fin=r.kind=="finale",card=$("#card");card.innerHTML="";
+ const add=(t,tx,cls)=>{const e=document.createElement(t);if(tx)e.textContent=tx;if(cls)e.className=cls;card.append(e);return e};
+ add("h2",r.title);if(k.text)add("p",k.text);
+ (k.photos||[]).forEach(p=>{const i=add("img");i.src=p.url;i.alt=p.caption||"";if(p.caption)add("div",p.caption,"cap")});
+ if(k.until)add("p","⏳ À utiliser avant le "+new Date(k.until).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),"gold");
+ if(k.hint){const h=add("button","💡 Voir l’indice","btn");h.onclick=()=>{h.replaceWith(Object.assign(document.createElement("p"),{textContent:k.hint,className:"gold"}));sfx.open()}}
+ if(k.quiz)quiz(k.quiz,card,add);
+ add("button","Retourner au village","btn").onclick=()=>{$("#modal").classList.remove("on","fin")};
+ $("#modal").classList.toggle("fin",fin);$("#modal").classList.add("on");sfx[fin?"fin":"open"]();if(fin)confetti();}
+function quiz(qs,card,add){let i=0,sc=0;const box=add("div");(function show(){box.innerHTML="";if(i>=qs.length){const p=document.createElement("p");p.className="gold";p.textContent="Score : "+sc+" / "+qs.length+(sc==qs.length?" 🏆 Parfait !":"");box.append(p);if(sc==qs.length)confetti();return}
+ const q=qs[i],t=document.createElement("p");t.textContent=q.q;box.append(t);
+ q.options.forEach((o,j)=>{const b=document.createElement("button");b.className="btn opt";b.textContent=o;b.onclick=()=>{[...box.querySelectorAll(".opt")].forEach((x,n)=>{x.disabled=1;if(n==q.answer)x.classList.add("good")});if(j==q.answer)sc++;else b.classList.add("bad");sfx.click();setTimeout(()=>{i++;show()},1100)};box.append(b)})})()}
+$("#modal").onclick=e=>{if(e.target.id=="modal")e.target.classList.remove("on","fin")};
+load();
+</script></body></html>

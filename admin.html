@@ -1,0 +1,56 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Administration</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f6efdc;color:#222;margin:0}header{background:#0f3d2e;color:#f6efdc;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+main{max-width:1000px;margin:auto;padding:16px}.grid{display:grid;grid-template-columns:230px 1fr;gap:16px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.list button{display:block;width:100%;text-align:left;padding:8px;margin-bottom:4px;border:1px solid #d9b25f;background:#fff;border-radius:6px;cursor:pointer}.list .on{background:#0f3d2e;color:#fff}
+label{display:block;margin:12px 0 4px;font-weight:600}input,select,textarea{width:100%;padding:8px;border:1px solid #aaa;border-radius:6px;font:inherit}textarea{min-height:90px}
+.b{background:#0f3d2e;color:#fff;border:0;border-radius:6px;padding:9px 14px;cursor:pointer;margin:4px 4px 0 0}.b.r{background:#8b2e2e}.b.s{background:#2e7d4f;font-size:1.05rem;padding:12px 22px}
+.box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin-top:8px}.ph{display:flex;gap:8px;align-items:center;margin:6px 0}.ph img{height:60px;border-radius:4px}
+#msg{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:8px;color:#fff;display:none}small{color:#666}
+</style></head><body>
+<header><b>🎄 Administration du village</b><span id="who"></span></header>
+<main id="login"><h2>Connexion</h2><label>E-mail</label><input id="em" type="email" autocomplete="username"><label>Mot de passe</label><input id="pw" type="password" autocomplete="current-password"><button class="b" id="go">Se connecter</button></main>
+<main id="app" hidden><div class="grid"><div class="list" id="list"></div><div id="ed"></div></div></main><div id="msg"></div>
+<script src="config.js"></script><script>
+const C=window.CONFIG,$=s=>document.querySelector(s);let tok=sessionStorage.getItem("tok"),rows={},cur=null,dirty=false;
+const H=()=>{const h={apikey:C.KEY,"Content-Type":"application/json"};if(tok)h.Authorization="Bearer "+tok;return h};
+function msg(t,ok=true){const m=$("#msg");m.textContent=t;m.style.background=ok?"#2e7d4f":"#8b2e2e";m.style.display="block";setTimeout(()=>m.style.display="none",3500)}
+$("#go").onclick=async()=>{const r=await fetch(C.URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:C.KEY,"Content-Type":"application/json"},body:JSON.stringify({email:$("#em").value,password:$("#pw").value})});
+ const j=await r.json();if(!r.ok)return msg("Identifiants incorrects",false);tok=j.access_token;sessionStorage.setItem("tok",tok);start()};
+async function start(){const r=await fetch(C.URL+"/rest/v1/houses?select=*&order=day",{headers:H()});
+ if(!r.ok){sessionStorage.removeItem("tok");tok=null;return}
+ (await r.json()).forEach(x=>rows[x.day]=x);$("#login").hidden=true;$("#app").hidden=false;$("#who").innerHTML='<button class="b" onclick="sessionStorage.clear();location.reload()">Se déconnecter</button>';list();pick(cur||1)}
+function list(){$("#list").innerHTML="";for(let d=1;d<=25;d++){const b=document.createElement("button");const x=rows[d];b.textContent=d+" — "+(x?x.title:"(vide)")+(x&&!x.published?" 🚫":"");if(d==cur)b.className="on";b.onclick=()=>{if(dirty&&!confirm("Modifications non enregistrées. Quitter quand même ?"))return;pick(d)};$("#list").append(b)}}
+const KINDS={message:"Message",blague:"Blague / private joke",photo:"Photos / souvenirs",defi:"Défi / énigme",bon:"Bon pour une activité",quiz:"Quiz",cadeau:"Cadeau physique",horoscope:"Horoscope",bingo:"Bingo",une:"Fausse Une",finale:"Cadeau final (25)"};
+function pick(d){cur=d;dirty=false;list();const x=rows[d]||{day:d,kind:d==25?"finale":"message",title:"",content:{},published:true},k=x.content||{};window.ph=[...(k.photos||[])];window.qz=JSON.parse(JSON.stringify(k.quiz||[]));
+ $("#ed").innerHTML=`<h2>Maison ${d}</h2><label>Type</label><select id="kind">${Object.entries(KINDS).map(([a,b])=>`<option value="${a}"${a==x.kind?" selected":""}>${b}</option>`).join("")}</select>
+ <label>Titre</label><input id="title"><label>Texte</label><textarea id="text"></textarea>
+ <label>Indice <small>(facultatif — pour un cadeau ou une énigme)</small></label><input id="hint">
+ <label>Date limite du bon <small>(facultatif)</small></label><input id="until" type="date">
+ <label>Photos</label><div class="box"><div id="phs"></div><input type="file" id="file" accept="image/*" multiple></div>
+ <label>Quiz <small>(facultatif)</small></label><div class="box"><div id="qzs"></div><button class="b" onclick="qz.push({q:'',options:['',''],answer:0});dirty=true;drawQ()">+ Ajouter une question</button></div>
+ <label><input type="checkbox" id="pub" style="width:auto"> Publiée (visible quand la maison s'ouvre)</label>
+ <p><button class="b s" id="save">💾 Enregistrer</button><button class="b" id="prev">👁 Aperçu</button></p><div id="pv"></div>`;
+ $("#title").value=x.title;$("#text").value=k.text||"";$("#hint").value=k.hint||"";$("#until").value=k.until||"";$("#pub").checked=x.published!==false;
+ drawP();drawQ();$("#ed").oninput=()=>dirty=true;$("#file").onchange=upl;$("#save").onclick=save;$("#prev").onclick=prev}
+function drawP(){$("#phs").innerHTML="";ph.forEach((p,i)=>{const r=document.createElement("div");r.className="ph";r.innerHTML=`<img src="${p.url}"><input placeholder="Légende" value="">`;r.querySelector("input").value=p.caption||"";r.querySelector("input").oninput=e=>{p.caption=e.target.value;dirty=true};
+ const b=document.createElement("button");b.className="b r";b.textContent="Supprimer";b.onclick=async()=>{if(!confirm("Supprimer cette photo ?"))return;const n=p.url.split("/photos/")[1];if(n)await fetch(C.URL+"/storage/v1/object/photos/"+n,{method:"DELETE",headers:H()});ph.splice(i,1);dirty=true;drawP()};r.append(b);$("#phs").append(r)})}
+function drawQ(){$("#qzs").innerHTML="";qz.forEach((q,i)=>{const r=document.createElement("div");r.className="box";r.innerHTML=`<input placeholder="Question"><div></div>`;const qi=r.querySelector("input");qi.value=q.q;qi.oninput=e=>{q.q=e.target.value;dirty=true};
+ q.options.forEach((o,j)=>{const l=document.createElement("div");l.className="ph";l.innerHTML=`<input type="radio" name="a${i}" style="width:auto"${j==q.answer?" checked":""}><input placeholder="Réponse ${j+1}">`;l.children[0].onchange=()=>{q.answer=j;dirty=true};l.children[1].value=o;l.children[1].oninput=e=>{q.options[j]=e.target.value;dirty=true};r.lastChild.append(l)});
+ const a=document.createElement("button");a.className="b";a.textContent="+ Réponse";a.onclick=()=>{q.options.push("");drawQ()};const d=document.createElement("button");d.className="b r";d.textContent="Supprimer la question";d.onclick=()=>{qz.splice(i,1);dirty=true;drawQ()};r.append(a,d,Object.assign(document.createElement("small"),{textContent:" ● = bonne réponse"}));$("#qzs").append(r)})}
+function shrink(f){return new Promise(res=>{const i=new Image();i.onload=()=>{const s=Math.min(1,1600/Math.max(i.width,i.height)),c=document.createElement("canvas");c.width=i.width*s;c.height=i.height*s;c.getContext("2d").drawImage(i,0,0,c.width,c.height);c.toBlob(res,"image/jpeg",.85)};i.src=URL.createObjectURL(f)})}
+async function upl(e){for(const f of e.target.files){const b=await shrink(f),n=crypto.randomUUID()+".jpg";
+ const r=await fetch(C.URL+"/storage/v1/object/photos/"+n,{method:"POST",headers:{apikey:C.KEY,Authorization:"Bearer "+tok,"Content-Type":"image/jpeg"},body:b});
+ if(!r.ok){msg("Échec de l'envoi de la photo",false);continue}ph.push({url:C.URL+"/storage/v1/object/public/photos/"+n,caption:""})}dirty=true;drawP();e.target.value=""}
+function collect(){const c={text:$("#text").value};if($("#hint").value)c.hint=$("#hint").value;if($("#until").value)c.until=$("#until").value;if(ph.length)c.photos=ph;
+ const q=qz.filter(x=>x.q.trim()).map(x=>({...x,options:x.options.filter(o=>o.trim())}));if(q.length)c.quiz=q;return{day:cur,kind:$("#kind").value,title:$("#title").value||"Maison "+cur,content:c,published:$("#pub").checked,updated_at:new Date().toISOString()}}
+async function save(){const row=collect(),r=await fetch(C.URL+"/rest/v1/houses?on_conflict=day",{method:"POST",headers:{...H(),Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(row)});
+ if(r.ok){rows[cur]=row;dirty=false;list();msg("✅ Enregistré !")}else msg("❌ Échec de l'enregistrement (reconnecte-toi ?)",false)}
+function prev(){const r=collect(),c=r.content,p=$("#pv");p.className="box";p.innerHTML="";const a=(t,x)=>{const e=document.createElement(t);e.textContent=x;p.append(e);return e};
+ a("h3",r.title);a("p",c.text||"");(c.photos||[]).forEach(x=>{const i=document.createElement("img");i.src=x.url;i.style.maxWidth="100%";p.append(i);a("small",x.caption||"")});
+ if(c.until)a("p","⏳ À utiliser avant le "+c.until);if(c.hint)a("p","💡 "+c.hint);(c.quiz||[]).forEach(q=>a("p","❓ "+q.q+" → "+q.options[q.answer]));
+ a("small","Aperçu : ce que verra Océane (le style exact est celui du village).")}
+addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue=""}});
+if(tok)start();
+</script></body></html>
